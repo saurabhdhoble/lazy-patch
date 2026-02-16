@@ -1,0 +1,5 @@
+# Pydantic needs rust & cargo installed. Need to pre-install them.
+pydantic==2.10
+snowflake-connector-python==4.2.0
+pyodbc==5.3.0
+python-dotenv==1.2.1
