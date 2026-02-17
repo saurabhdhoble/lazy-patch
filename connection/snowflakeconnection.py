@@ -59,13 +59,10 @@ class SnowflakeConnection(Connection):
                     logger.warning("Failed to close Snowflake connection")
 
 
-    def execute(self, script: str) -> ResponseModel:
+    def _execute(self, script: str) -> ResponseModel:
         """
-        Executes a Snowflake SQL script (supports multiple statements).
-        
-        Returns:
-            ResponseModel containing execution status, messages,
-            and query results (if any).
+        Internal execution logic for Snowflake SQL script.
+        Returns a ResponseModel (not serialized).
         """
         logger.info("Starting Snowflake script")
 
@@ -75,23 +72,15 @@ class SnowflakeConnection(Connection):
             conn = connector.connect(**self.connection_config.model_dump())
             logger.info("Snowflake connection established")
 
-            # Store results from all executed statements
             results_payload = []
 
-            # Snowflake supports multi-statement execution
-            # execute_string returns an iterable of cursors
+            # Execute multi-statement script
             for cur in conn.execute_string(script):
 
-                # Some statements (DDL, etc.) return no rows
-                # Only process result sets that contain data
                 if cur.description:
-                    # Extract column names from cursor metadata
                     columns = [col[0] for col in cur.description]
-
-                    # Fetch limited number of rows based on MAX_ROW_SIZE
                     rows = cur.fetchmany(self.MAX_ROW_SIZE)
 
-                    # Append structured result set
                     results_payload.append({
                         "columns": columns,
                         "rows": rows
@@ -99,7 +88,6 @@ class SnowflakeConnection(Connection):
 
             logger.info("Snowflake script executed successfully")
 
-            # Return successful response model
             return ResponseModel(
                 status="pass",
                 success_text="Snowflake script executed successfully",
@@ -108,23 +96,15 @@ class SnowflakeConnection(Connection):
             )
 
         except Exception as e:
-            # Log full stack trace for debugging
-            logger.exception(f"Error executing Snowflake script")
-
-            # Return failure response model
-            return ResponseModel(
-                status="fail",
-                error_text=str(e)
-            )
+            """
+            Let the parent execute() wrapper handle exceptions
+            """
+            raise e
 
         finally:
-            # Ensure connection is always closed
             if conn:
-                try:
-                    conn.close()
-                    logger.info("Snowflake connection closed")
-                except Exception:
-                    logger.warning("Failed to close Snowflake connection")
+                conn.close()
+                logger.info("Snowflake connection closed")
 
     
     def callback(self, future: Future) -> ResponseModel:

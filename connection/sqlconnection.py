@@ -49,7 +49,7 @@ class SqlConnection(Connection):
         except Exception as e:
             raise RuntimeError(f"SQL Server connection test failed: {e}") from e
 
-    def execute(self, script: str) -> ResponseModel:
+    def _execute(self, script: str) -> ResponseModel:
         """
         Executes a SQL Server script (supports multiple statements).
 
@@ -94,10 +94,22 @@ class SqlConnection(Connection):
             # Only fetch results if the statement returns rows
             if cursor.description:
                 columns = [col[0] for col in cursor.description]
-                rows = cursor.fetchmany(self.MAX_ROW_SIZE)
+                raw_rows = cursor.fetchmany(self.MAX_ROW_SIZE)
+                # Convert pyodbc.Row -> dict for JSON serialization
+                rows = [
+                    dict(zip(columns, row))
+                    for row in raw_rows
+                ]
                 results_payload.append({
                     "columns": columns,
                     "rows": rows
+                })
+                # Case 2: Statement does NOT return rows (INSERT/UPDATE/DDL)
+            else:
+                results_payload.append({
+                    "columns": [],
+                    "rows": [],
+                    "rowcount": cursor.rowcount  # useful metadata
                 })
 
             logger.info("SQL Server script executed successfully")
@@ -111,21 +123,15 @@ class SqlConnection(Connection):
             )
 
         except Exception as e:
-            logger.exception("Error executing SQL Server script")
-            return ResponseModel(
-                status="fail",
-                success_text="",
-                error_text=str(e),
-                data=None
-            )
+            """
+            Let the parent execute() wrapper handle exceptions
+            """
+            raise e
 
         finally:
             if conn:
-                try:
-                    conn.close()
-                    logger.info("SQL Server connection closed")
-                except Exception:
-                    logger.warning("Failed to close SQL Server connection")
+                conn.close()
+                logger.info("SQL Server connection closed")
 
     
     def callback(self, future: Future) -> ResponseModel:

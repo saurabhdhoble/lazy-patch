@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(f"app.{__name__}")
 
 class Job(BaseModel):
+    task_id: str
     job_name: str
     job_connection: AnyConnection
     execution_script: str
