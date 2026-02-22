@@ -15,6 +15,14 @@ class SqlConnection(Connection):
    # Maximum number of rows to fetch per result set (None means no limit)
     MAX_ROW_SIZE: int | None = 100
 
+    @classmethod
+    def _from_payload(cls, job_payload):
+        cfg = SqlServerConfig.from_env()
+
+        return SqlConnection(
+            connection_config = cfg
+        )
+
     def test_connection(self):
         try:
             cfg: SqlServerConfig = self.connection_config
