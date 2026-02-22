@@ -10,9 +10,10 @@ def main():
 
     jobs = [
         {
-            "job_name": "My Sql Server Job",
-            "execution_script": "SELECT TOP 10 * FROM INFORMATION_SCHEMA.TABLES",
-            "created_by": "sd",
+            "job_name": "My Lambda Job",
+            "connection_type": "snowflake",
+            "execution_script": "select top 10 * from information_schema.tables",
+            "created_by": "sd"
         }
     ]
 
