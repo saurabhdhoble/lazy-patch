@@ -75,6 +75,34 @@ class Connection(BaseModel, ABC):
             return fallback_response.model_dump_json()
         
 
+
+    def execute(self, script: str) -> str:
+        """
+        Wrapper method:
+        - Calls internal _execute()
+        - Serializes ResponseModel using model_dump()
+        - Handles unexpected exceptions
+        - Returns JSON string
+        """
+        try:
+            response: ResponseModel = self._execute(script)
+
+            # Serialize ResponseModel to JSON
+            return response.model_dump_json()
+
+        except Exception as e:
+            logger.exception(
+                f"Unhandled exception in {self.__class__.__name__}.execute: {str(e)}"
+            )
+
+            fallback_response = ResponseModel(
+                status="fail",
+                error_text=str(e)
+            )
+
+            return fallback_response.model_dump_json()
+        
+
     @abstractmethod
     def _execute(self, script: str) -> ResponseModel:
         """
